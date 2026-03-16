@@ -4,14 +4,7 @@
 #include <cstdint>
 #include <span>
 #include <liburing.h>
-
-struct RecordHeader {
-    uint32_t payload_length;
-    uint64_t sequence_number;
-    uint32_t crc32;
-} __attribute__((packed));
-
-static_assert(sizeof(RecordHeader) == 16);
+#include "../util/util.h"
 
 class AppendLog {
     int      fd_       = -1;
@@ -28,6 +21,8 @@ public:
     AppendLog& operator=(const AppendLog&) = delete;
 
     void append(std::span<const uint8_t> payload);
+    void recover();
+    uint64_t next_seq() const { return next_seq_; }
 };
 
 #endif // APPEND_LOG_H

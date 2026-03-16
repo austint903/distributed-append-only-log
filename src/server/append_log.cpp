@@ -1,4 +1,5 @@
 #include "append_log.h"
+#include "../util/util.h"
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -7,30 +8,8 @@
 #include <vector>
 #include <cstring>
 
-// crc32 hashing
-static uint32_t crc32_table[256];
-static bool crc32_table_ready = false;
-
-static void crc32_init_table() {
-    for (uint32_t i = 0; i < 256; i++) {
-        uint32_t c = i;
-        for (int k = 0; k < 8; k++)
-            c = (c & 1) ? (0xEDB88320u ^ (c >> 1)) : (c >> 1);
-        crc32_table[i] = c;
-    }
-    crc32_table_ready = true;
-}
-
-static uint32_t crc32_compute(const uint8_t* data, size_t len) {
-    if (!crc32_table_ready) crc32_init_table();
-    uint32_t crc = 0xFFFFFFFFu;
-    for (size_t i = 0; i < len; i++)
-        crc = (crc >> 8) ^ crc32_table[(crc ^ data[i]) & 0xFF];
-    return crc ^ 0xFFFFFFFFu;
-}
-
 AppendLog::AppendLog(const char* path) {
-    fd_ = open(path, O_WRONLY | O_CREAT | O_APPEND, 0644);
+    fd_ = open(path, O_RDWR | O_CREAT | O_APPEND, 0644);
     if (fd_ < 0)
         throw std::runtime_error("open() failed");
 
@@ -38,6 +17,16 @@ AppendLog::AppendLog(const char* path) {
         close(fd_);
         throw std::runtime_error("io_uring_queue_init() failed");
     }
+
+    recover();
+}
+
+void AppendLog::recover() {
+    auto [next_seq, last_good_end] = scan_log(fd_);
+    next_seq_ = next_seq;
+
+    if (ftruncate(fd_, last_good_end) != 0)
+        throw std::runtime_error("ftruncate() failed during recovery");
 }
 
 AppendLog::~AppendLog() {
