@@ -1,103 +1,27 @@
-#include <cstdint>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdexcept>
-#include <string>
-#include <vector>
-#include <span>
-#include <liburing.h>
-
-struct RecordHeader {
-    uint32_t payload_length;
-    uint64_t sequence_number;
-    uint32_t crc32;
-}__attribute__((packed));
-
-static_assert(sizeof(RecordHeader) == 16);
-
-// crc32 hashing
-static uint32_t crc32_table[256];
-static bool crc32_table_ready = false;
-
-static void crc32_init_table() {
-    for (uint32_t i = 0; i < 256; i++) {
-        uint32_t c = i;
-        for (int k = 0; k < 8; k++)
-            c = (c & 1) ? (0xEDB88320u ^ (c >> 1)) : (c >> 1);
-        crc32_table[i] = c;
-    }
-    crc32_table_ready = true;
-}
-
-static uint32_t crc32_compute(const uint8_t* data, size_t len) {
-    if (!crc32_table_ready) crc32_init_table();
-    uint32_t crc = 0xFFFFFFFFu;
-    for (size_t i = 0; i < len; i++)
-        crc = (crc >> 8) ^ crc32_table[(crc ^ data[i]) & 0xFF];
-    return crc ^ 0xFFFFFFFFu;
-}
-
-class AppendLog {
-    int      fd_       = -1;
-    io_uring ring_     = {};
-    uint64_t next_seq_ = 0;
-
-    static constexpr unsigned QUEUE_DEPTH = 1;
-
-public:
-    explicit AppendLog(const char* path) {
-        fd_ = open(path, O_WRONLY | O_CREAT | O_APPEND, 0644);
-        if (fd_ < 0)
-            throw std::runtime_error("open() failed");
-
-        if (io_uring_queue_init(QUEUE_DEPTH, &ring_, 0) != 0) {
-            close(fd_);
-            throw std::runtime_error("io_uring_queue_init() failed");
-        }
-    }
-
-    ~AppendLog() {
-        io_uring_queue_exit(&ring_);
-        if (fd_ >= 0) close(fd_);
-    }
-
-    //disable copy constructor
-    AppendLog(const AppendLog&)            = delete;
-    AppendLog& operator=(const AppendLog&) = delete;
-
-    void append(std::span<const uint8_t> payload) {
-        RecordHeader hdr{};
-        hdr.payload_length  = static_cast<uint32_t>(payload.size());
-        hdr.sequence_number = next_seq_++;
-        hdr.crc32           = crc32_compute(payload.data(), payload.size());
-
-        std::vector<uint8_t> record(sizeof(RecordHeader) + payload.size());
-        memcpy(record.data(), &hdr,sizeof(hdr));
-        memcpy(record.data() + sizeof(hdr),payload.data(),payload.size());
-
-        io_uring_sqe* sqe = io_uring_get_sqe(&ring_);
-        if (!sqe)
-            throw std::runtime_error("submission queue full");
-
-        io_uring_prep_write(sqe, fd_, record.data(),
-                            static_cast<unsigned int>(record.size()), -1);
-
-        if (io_uring_submit(&ring_) < 0)
-            throw std::runtime_error("io_uring_submit() failed");
-
-        io_uring_cqe* cqe = nullptr;
-        if (io_uring_wait_cqe(&ring_, &cqe) < 0)
-            throw std::runtime_error("io_uring_wait_cqe() failed");
-
-        int result = cqe->res;
-        io_uring_cqe_seen(&ring_, cqe);
-
-        if (result < 0)
-            throw std::runtime_error("write failed: " + std::to_string(-result));
-    }
-};
+#include <cstdlib>
+#include <iostream>
+#include <cstring>
+#include "append_log.h"
+#include "../util/util.h"
 
 int main() {
+    char* working_directory = get_working_directory();
+    std::cout << working_directory << "\n";
+    free(working_directory);
+
     AppendLog log("src/logs/basic_append.log");
+
+    const char* messages[] = {
+        "test1",
+        "test2",
+        "test3",
+    };
+
+    for (const char* msg : messages) {
+        auto* data = reinterpret_cast<const uint8_t*>(msg);
+        log.append(std::span<const uint8_t>(data, strlen(msg)));
+        std::cout << "appended: " << msg << "\n";
+    }
+
     return 0;
 }
