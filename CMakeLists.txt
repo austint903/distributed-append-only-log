@@ -3,7 +3,11 @@ project(distributed_append_only_log)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(server src/server/main.cpp)
+add_executable(server src/server/main.cpp
+        src/util/util.h
+        src/util/util.cpp)
 target_link_libraries(server uring)
 
-add_executable(producer src/producer/main.cpp)
+add_executable(producer src/producer/main.cpp
+        src/util/util.h
+        src/util/util.cpp)
