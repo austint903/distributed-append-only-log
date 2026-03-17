@@ -24,3 +24,10 @@ add_executable(test_append tests/test_append.cpp
         src/util/util.h
         src/util/util.cpp)
 target_link_libraries(test_append uring)
+
+add_executable(test_crash_recovery tests/test_crash_recovery.cpp
+        src/server/append_log.h
+        src/server/append_log.cpp
+        src/util/util.h
+        src/util/util.cpp)
+target_link_libraries(test_crash_recovery uring)
