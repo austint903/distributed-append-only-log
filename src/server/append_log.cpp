@@ -34,10 +34,10 @@ AppendLog::~AppendLog() {
     if (fd_ >= 0) close(fd_);
 }
 
-void AppendLog::append(std::span<const uint8_t> payload) {
+uint64_t AppendLog::append_and_seq(std::span<const uint8_t> payload) {
     RecordHeader hdr{};
     hdr.payload_length  = static_cast<uint32_t>(payload.size());
-    hdr.sequence_number = next_seq_++;
+    hdr.sequence_number = next_seq_;
     hdr.crc32           = crc32_compute(payload.data(), payload.size());
 
     std::vector<uint8_t> record(sizeof(RecordHeader) + payload.size());
@@ -63,4 +63,6 @@ void AppendLog::append(std::span<const uint8_t> payload) {
 
     if (result < 0)
         throw std::runtime_error("write failed: " + std::to_string(-result));
+
+    return next_seq_++;
 }

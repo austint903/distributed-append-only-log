@@ -6,8 +6,8 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#include <cstdio>
 #include <cstring>
+#include <iostream>
 #include <vector>
 
 int main() {
@@ -21,14 +21,14 @@ int main() {
     hdr->payload_len = htonl(static_cast<uint32_t>(payload.size()));
     std::memcpy(pkt.data() + sizeof(ProducerPacket), payload.data(), payload.size());
 
-    int fd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (fd < 0) { perror("socket"); return 1; }
+    const int fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (fd < 0) { std::cerr << "socket failed\n"; return 1; }
 
-    struct timeval tv{};
+    timeval tv{};
     tv.tv_sec  = TIMEOUT_SEC;
     tv.tv_usec = 0;
     if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
-        perror("setsockopt SO_RCVTIMEO");
+        std::cerr << "setsockopt SO_RCVTIMEO failed\n";
         close(fd);
         return 1;
     }
@@ -38,35 +38,27 @@ int main() {
     server.sin_port   = htons(SERVER_PORT);
     inet_pton(AF_INET, SERVER_IP, &server.sin_addr);
 
-    printf("Sending payload (%zu bytes): %s\n", payload.size(), payload.c_str());
 
     while (true) {
         ssize_t sent = sendto(fd, pkt.data(), pkt_size, 0,
                               reinterpret_cast<sockaddr*>(&server), sizeof(server));
-        if (sent < 0) { perror("sendto"); close(fd); return 1; }
+        if (sent < 0) { std::cerr << "sendto failed\n"; close(fd); return 1; }
 
         AckPacket ack{};
         ssize_t n = recvfrom(fd, &ack, sizeof(ack), 0, nullptr, nullptr);
 
         if (n < 0) {
-            printf("Timeout waiting for ACK, retrying (seq=%u)...\n", seq);
+            std::cerr << "timeout waiting for ACK, retrying...\n";
             continue;
         }
-        if (n < static_cast<ssize_t>(sizeof(ack))) {
-            printf("Short ACK (%zd bytes), retrying...\n", n);
-            continue;
-        }
+        if (n < static_cast<ssize_t>(sizeof(ack))) continue;
 
         uint32_t acked_seq     = ntohl(ack.producer_seq);
         uint64_t committed_seq = be64toh(ack.committed_seq);
 
-        if (acked_seq != seq) {
-            printf("Stale ACK (seq=%u != expected %u), retrying...\n", acked_seq, seq);
-            continue;
-        }
+        if (acked_seq != seq) continue;
 
-        printf("Record committed at log offset %llu\n",
-               static_cast<unsigned long long>(committed_seq));
+        std::cout << "committed at log offset " << committed_seq << "\n";
         break;
     }
 

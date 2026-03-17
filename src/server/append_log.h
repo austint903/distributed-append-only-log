@@ -20,7 +20,8 @@ public:
     AppendLog(const AppendLog&)            = delete;
     AppendLog& operator=(const AppendLog&) = delete;
 
-    void append(std::span<const uint8_t> payload);
+    uint64_t append_and_seq(std::span<const uint8_t> payload);
+    void append(std::span<const uint8_t> payload) { append_and_seq(payload); }
     void recover();
     uint64_t next_seq() const { return next_seq_; }
 };
