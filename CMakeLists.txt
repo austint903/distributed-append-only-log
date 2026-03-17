@@ -11,5 +11,14 @@ add_executable(server src/server/main.cpp
 target_link_libraries(server uring)
 
 add_executable(producer src/producer/main.cpp
+        src/producer/producer.h
+        src/producer/producer.cpp
         src/util/util.h
         src/util/util.cpp)
+
+add_executable(test_append tests/test_append.cpp
+        src/server/append_log.h
+        src/server/append_log.cpp
+        src/util/util.h
+        src/util/util.cpp)
+target_link_libraries(test_append uring)
