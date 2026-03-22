@@ -1,0 +1,19 @@
+
+services:
+  server-dev:
+    build:
+      context: .
+      dockerfile: infra/server/Dockerfile
+    container_name: distributed_log_server
+    volumes:
+      - .:/app
+    ports:
+      - "2222:22"
+
+  producer:
+    build:
+      context: .
+      dockerfile: infra/producer/Dockerfile
+    container_name: distributed_log_producer
+    volumes:
+      - .:/app

@@ -19,8 +19,8 @@ Server::Server(const char* log_path) : log_(log_path) {
         throw std::runtime_error("socket() failed");
 
     sockaddr_in addr{};
-    addr.sin_family      = AF_INET;
-    addr.sin_port        = htons(SERVER_PORT);
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(SERVER_PORT);
     addr.sin_addr.s_addr = INADDR_ANY;
 
     if (bind(udp_fd_, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0) {
