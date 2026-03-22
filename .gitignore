@@ -1,3 +1,4 @@
 cmake-build-*/
 .idea/
 src/logs/
+.clion.source.upload.marker

@@ -9,6 +9,7 @@ services:
       - .:/app
     ports:
       - "2222:22"
+    privileged: true
 
   producer:
     build:
