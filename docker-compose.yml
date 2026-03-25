@@ -9,12 +9,6 @@ services:
       - .:/app
     ports:
       - "2222:22"
+      - "9999:9999/udp"
     privileged: true
 
-  producer:
-    build:
-      context: .
-      dockerfile: infra/producer/Dockerfile
-    container_name: distributed_log_producer
-    volumes:
-      - .:/app
