@@ -12,9 +12,9 @@ add_executable(server src/server/main.cpp
         src/util/util.cpp)
 target_link_libraries(server uring)
 
-add_executable(producer src/producer/main.cpp
-        src/producer/producer.h
-        src/producer/producer.cpp
+add_executable(producer tools/producer/main.cpp
+        tools/producer/producer.h
+        tools/producer/producer.cpp
         src/util/util.h
         src/util/util.cpp)
 
