@@ -3,6 +3,13 @@
 
 #include <cstdint>
 
+#ifdef __APPLE__
+#include <machine/endian.h>
+#include <libkern/OSByteOrder.h>
+#define be64toh(x) OSSwapBigToHostInt64(x)
+#define htobe64(x) OSSwapHostToBigInt64(x)
+#endif
+
 static constexpr uint16_t SERVER_PORT = 9999;
 
 
