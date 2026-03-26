@@ -16,7 +16,8 @@ add_executable(producer tools/producer/main.cpp
         tools/producer/producer.h
         tools/producer/producer.cpp
         src/util/util.h
-        src/util/util.cpp)
+        src/util/util.cpp
+        src/server/http_server/http_server.h)
 
 add_executable(test_append tests/test_append.cpp
         src/server/append_log/append_log.h
@@ -31,3 +32,5 @@ add_executable(test_crash_recovery tests/test_crash_recovery.cpp
         src/util/util.h
         src/util/util.cpp)
 target_link_libraries(test_crash_recovery uring)
+add_executable(http_server src/server/http_server/http_server.h
+        src/server/http_server/http_server.cpp)

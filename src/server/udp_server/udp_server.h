@@ -4,11 +4,11 @@
 #include "../append_log/append_log.h"
 
 class UdpServer {
-    int       udp_fd_ = -1;
-    AppendLog log_;
+    int        udp_fd_ = -1;
+    AppendLog& log_;
 
 public:
-    explicit UdpServer(const char* log_path);
+    explicit UdpServer(AppendLog& log);
     ~UdpServer();
 
     UdpServer(const UdpServer&)            = delete;

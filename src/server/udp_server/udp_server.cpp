@@ -13,7 +13,7 @@
 
 static constexpr size_t MAX_UDP = 65535;
 
-UdpServer::UdpServer(const char* log_path) : log_(log_path) {
+UdpServer::UdpServer(AppendLog& log) : log_(log) {
     udp_fd_ = socket(AF_INET, SOCK_DGRAM, 0);
     if (udp_fd_ < 0)
         throw std::runtime_error("socket() failed");
