@@ -32,5 +32,9 @@ add_executable(test_crash_recovery tests/test_crash_recovery.cpp
         src/util/util.h
         src/util/util.cpp)
 target_link_libraries(test_crash_recovery uring)
-add_executable(http_server src/server/http_server/http_server.h
-        src/server/http_server/http_server.cpp)
+
+add_executable(http_server
+        src/server/http_server/http_server.cpp
+        src/server/append_log/append_log.cpp
+        src/util/util.cpp)
+target_link_libraries(http_server uring pthread)
