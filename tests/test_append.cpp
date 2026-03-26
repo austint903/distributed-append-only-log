@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#include "../src/server/append_log.h"
+#include "../src/server/append_log/append_log.h"
 #include "../src/util/util.h"
 
 // Read back the raw file and verify one record was written correctly.

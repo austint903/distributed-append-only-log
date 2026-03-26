@@ -1,7 +1,7 @@
-#include "server.h"
+#include "udp_server/udp_server.h"
 
 int main() {
-    Server server("test_logs/basic_append.log");
+    UdpServer server("test_logs/basic_append.log");
     server.run();
     return 0;
 }

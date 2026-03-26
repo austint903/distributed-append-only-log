@@ -1,5 +1,5 @@
-#include "server.h"
-#include "../protocol/protocol.h"
+#include "udp_server.h"
+#include "../../protocol/protocol.h"
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -13,7 +13,7 @@
 
 static constexpr size_t MAX_UDP = 65535;
 
-Server::Server(const char* log_path) : log_(log_path) {
+UdpServer::UdpServer(const char* log_path) : log_(log_path) {
     udp_fd_ = socket(AF_INET, SOCK_DGRAM, 0);
     if (udp_fd_ < 0)
         throw std::runtime_error("socket() failed");
@@ -31,11 +31,11 @@ Server::Server(const char* log_path) : log_(log_path) {
     std::cout << "listening on UDP port " << SERVER_PORT << "\n";
 }
 
-Server::~Server() {
+UdpServer::~UdpServer() {
     if (udp_fd_ >= 0) close(udp_fd_);
 }
 
-void Server::run() {
+void UdpServer::run() {
     std::vector<uint8_t> buf(MAX_UDP);
 
     while (true) {

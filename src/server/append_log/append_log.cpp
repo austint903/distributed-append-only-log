@@ -1,5 +1,5 @@
 #include "append_log.h"
-#include "../util/util.h"
+#include "../../util/util.h"
 
 #include <fcntl.h>
 #include <unistd.h>
