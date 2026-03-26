@@ -11,7 +11,7 @@ class HttpServer {
     AppendLog& log_;
     httplib::Server http_server_;
     public:
-        explicit HttpServer(AppendLog& log) : log_(log) {}
+        explicit HttpServer(AppendLog& log);
         void start();
         void stop();
 };
