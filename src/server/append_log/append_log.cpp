@@ -28,6 +28,7 @@ void AppendLog::recover() {
     if (ftruncate(fd_, last_good_end) != 0)
         throw std::runtime_error("ftruncate() failed during recovery");
     fileIndex = last_good_end;
+    buildIndex();
 }
 
 AppendLog::~AppendLog() {
@@ -39,6 +40,16 @@ void AppendLog::addIndex(uint64_t sequenceNumber, off_t offset) {
     index_[sequenceNumber] = offset;
 }
 
+void AppendLog::buildIndex() {
+    off_t offset = 0;
+    while (true) {
+        RecordHeader hdr;
+        int n = pread(fd_, &hdr, sizeof(hdr), offset);
+        if (n <= 0) break;
+        index_[hdr.sequence_number] = offset;
+        offset+= (sizeof(hdr) + hdr.payload_length);
+    }
+}
 
 uint64_t AppendLog::append_and_seq(std::span<const uint8_t> payload) {
     RecordHeader hdr{};
