@@ -1,6 +1,5 @@
 #include <cassert>
 #include <cstdio>
-#include <cstring>
 #include <string>
 #include <vector>
 #include <unistd.h>
