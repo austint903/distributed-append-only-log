@@ -4,14 +4,21 @@
 #include <cstdint>
 #include <span>
 #include <liburing.h>
-#include "../../util/util.h"
+#include <optional>
 
+#include "../../util/util.h"
+#include <unordered_map>
 class AppendLog {
     int      fd_       = -1;
     io_uring ring_     = {};
     uint64_t next_seq_ = 0;
+    off_t fileIndex = 0;
 
     static constexpr unsigned QUEUE_DEPTH = 1;
+
+    std::unordered_map<uint64_t, off_t>index_;
+    void buildIndex(); // more so used internally, doesn't do anything for overall functionality
+    void addIndex(uint64_t sequenceNumber, off_t offset);
 
 public:
     explicit AppendLog(const char* path);
@@ -24,6 +31,8 @@ public:
     void append(std::span<const uint8_t> payload) { append_and_seq(payload); }
     void recover();
     uint64_t next_seq() const { return next_seq_; }
+
+    std::optional<off_t> getOffset(uint64_t sequenceNumber);
 };
 
 #endif // APPEND_LOG_H

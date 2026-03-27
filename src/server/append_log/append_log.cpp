@@ -27,11 +27,20 @@ void AppendLog::recover() {
 
     if (ftruncate(fd_, last_good_end) != 0)
         throw std::runtime_error("ftruncate() failed during recovery");
+    fileIndex = last_good_end;
 }
 
 AppendLog::~AppendLog() {
     io_uring_queue_exit(&ring_);
     if (fd_ >= 0) close(fd_);
+}
+
+void AppendLog::addIndex(uint64_t sequenceNumber, off_t offset) {
+    index_[sequenceNumber] = offset;
+}
+
+void AppendLog::buildIndex() {
+
 }
 
 uint64_t AppendLog::append_and_seq(std::span<const uint8_t> payload) {
@@ -64,5 +73,14 @@ uint64_t AppendLog::append_and_seq(std::span<const uint8_t> payload) {
     if (result < 0)
         throw std::runtime_error("write failed: " + std::to_string(-result));
 
+    //addIndex here
+    addIndex(next_seq_, fileIndex);
+    fileIndex+=record.size();
     return next_seq_++;
+}
+
+std::optional<off_t>AppendLog::getOffset(uint64_t sequenceNumber) {
+    auto it = index_.find(sequenceNumber);
+    if (it == index_.end())return std::nullopt;
+    return it->second;
 }

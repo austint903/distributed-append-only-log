@@ -5,9 +5,11 @@
 #include <vector>
 
 class LogReader {
-    explicit LogReader(const char* path);
-    ~LogReader();
-    std::optional<std::vector<uint8_t>> read();
+    int fd_;
+    public:
+        explicit LogReader(const char* path);
+        ~LogReader();
+        std::optional<std::vector<uint8_t>> read();
 };
 
 
