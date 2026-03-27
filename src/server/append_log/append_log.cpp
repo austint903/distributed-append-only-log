@@ -39,9 +39,6 @@ void AppendLog::addIndex(uint64_t sequenceNumber, off_t offset) {
     index_[sequenceNumber] = offset;
 }
 
-void AppendLog::buildIndex() {
-
-}
 
 uint64_t AppendLog::append_and_seq(std::span<const uint8_t> payload) {
     RecordHeader hdr{};

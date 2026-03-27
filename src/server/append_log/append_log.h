@@ -17,7 +17,6 @@ class AppendLog {
     static constexpr unsigned QUEUE_DEPTH = 1;
 
     std::unordered_map<uint64_t, off_t>index_;
-    void buildIndex(); // more so used internally, doesn't do anything for overall functionality
     void addIndex(uint64_t sequenceNumber, off_t offset);
 
 public:
