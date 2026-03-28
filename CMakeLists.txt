@@ -24,6 +24,8 @@ add_executable(producer tools/producer/main.cpp
         src/util/util.cpp
         src/server/http_server/http_server.h)
 
+add_executable(dlog src/util/dlog/main.cpp)
+
 add_executable(test_append tests/test_append.cpp
         src/server/append_log/append_log.h
         src/server/append_log/append_log.cpp
