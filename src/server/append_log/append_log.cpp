@@ -87,7 +87,7 @@ uint64_t AppendLog::append_and_seq(std::span<const uint8_t> payload) {
     return next_seq_++;
 }
 
-std::optional<off_t>AppendLog::getOffset(uint64_t sequenceNumber) {
+std::optional<off_t>AppendLog::getOffset(uint64_t sequenceNumber) const {
     auto it = index_.find(sequenceNumber);
     if (it == index_.end())return std::nullopt;
     return it->second;

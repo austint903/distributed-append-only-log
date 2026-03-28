@@ -32,7 +32,7 @@ public:
     void recover();
     uint64_t next_seq() const { return next_seq_; }
 
-    std::optional<off_t> getOffset(uint64_t sequenceNumber);
+    std::optional<off_t> getOffset(uint64_t sequenceNumber) const;
 };
 
 #endif // APPEND_LOG_H
