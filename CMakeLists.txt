@@ -8,6 +8,8 @@ add_executable(server src/server/main.cpp
         src/server/udp_server/udp_server.cpp
         src/server/append_log/append_log.h
         src/server/append_log/append_log.cpp
+        src/server/log_reader/log_reader.h
+        src/server/log_reader/log_reader.cpp
         src/server/http_server/http_server.h
         src/server/http_server/http_server.cpp
         src/util/util.h
