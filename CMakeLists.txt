@@ -8,9 +8,12 @@ add_executable(server src/server/main.cpp
         src/server/udp_server/udp_server.cpp
         src/server/append_log/append_log.h
         src/server/append_log/append_log.cpp
+        src/server/http_server/http_server.h
+        src/server/http_server/http_server.cpp
         src/util/util.h
-        src/util/util.cpp)
-target_link_libraries(server uring)
+        src/util/util.cpp
+        )
+target_link_libraries(server uring pthread)
 
 add_executable(producer tools/producer/main.cpp
         tools/producer/producer.h
@@ -33,8 +36,3 @@ add_executable(test_crash_recovery tests/test_crash_recovery.cpp
         src/util/util.cpp)
 target_link_libraries(test_crash_recovery uring)
 
-add_executable(http_server
-        src/server/http_server/http_server.cpp
-        src/server/append_log/append_log.cpp
-        src/util/util.cpp)
-target_link_libraries(http_server uring pthread)
