@@ -4,7 +4,6 @@
 
 #include "../src/util/util.h"
 
-
 TEST(Crc32Compute, KnownStringProducesStandardChecksum) {
     const uint8_t data[] = {'1','2','3','4','5','6','7','8','9'};
     EXPECT_EQ(crc32_compute(data, sizeof(data)), 0xCBF43926u);
