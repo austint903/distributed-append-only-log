@@ -33,7 +33,7 @@ public:
     uint64_t append_and_seq(std::span<const uint8_t> payload);
     void append(std::span<const uint8_t> payload) { append_and_seq(payload); }
     void recover();
-    uint64_t next_seq() const { return next_seq_; } // only used in unit tests
+    uint64_t next_seq() const { std::lock_guard<std::mutex> lock(mutex_); return next_seq_; }
 
     std::optional<off_t> getOffset(uint64_t sequenceNumber) const;
 };
