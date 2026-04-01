@@ -52,6 +52,7 @@ void AppendLog::buildIndex() {
 }
 
 uint64_t AppendLog::append_and_seq(std::span<const uint8_t> payload) {
+    std::lock_guard<std::mutex> lock(mutex_);
     RecordHeader hdr{};
     hdr.payload_length  = static_cast<uint32_t>(payload.size());
     hdr.sequence_number = next_seq_;
@@ -88,6 +89,7 @@ uint64_t AppendLog::append_and_seq(std::span<const uint8_t> payload) {
 }
 
 std::optional<off_t>AppendLog::getOffset(uint64_t sequenceNumber) const {
+    std::lock_guard<std::mutex> lock(mutex_);
     auto it = index_.find(sequenceNumber);
     if (it == index_.end())return std::nullopt;
     return it->second;

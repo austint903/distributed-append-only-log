@@ -8,11 +8,14 @@
 
 #include "../../util/util.h"
 #include <unordered_map>
+#include <mutex>
+
 class AppendLog {
     int      fd_       = -1;
     io_uring ring_     = {};
     uint64_t next_seq_ = 0;
     off_t fileIndex = 0;
+    mutable std::mutex mutex_;
 
     static constexpr unsigned QUEUE_DEPTH = 1;
 
@@ -30,7 +33,7 @@ public:
     uint64_t append_and_seq(std::span<const uint8_t> payload);
     void append(std::span<const uint8_t> payload) { append_and_seq(payload); }
     void recover();
-    uint64_t next_seq() const { return next_seq_; }
+    uint64_t next_seq() const { return next_seq_; } // only used in unit tests
 
     std::optional<off_t> getOffset(uint64_t sequenceNumber) const;
 };
