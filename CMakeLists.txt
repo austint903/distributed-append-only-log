@@ -95,3 +95,13 @@ add_executable(test_append_log_concurrency
     src/util/util.cpp)
 target_link_libraries(test_append_log_concurrency GTest::gtest_main uring pthread)
 add_test(NAME test_append_log_concurrency COMMAND test_append_log_concurrency)
+
+# test_topic_registry
+add_executable(test_topic_registry
+    tests/test_topic_registry.cpp
+    src/server/topic_registry/topic_registry.cpp
+    src/server/append_log/append_log.cpp
+    src/server/log_reader/log_reader.cpp
+    src/util/util.cpp)
+target_link_libraries(test_topic_registry GTest::gtest_main uring pthread)
+add_test(NAME test_topic_registry COMMAND test_topic_registry)
