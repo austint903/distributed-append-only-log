@@ -1,17 +1,15 @@
 #include "udp_server/udp_server.h"
-#include "append_log/append_log.h"
-#include "log_reader/log_reader.h"
 #include "http_server/http_server.h"
+#include "topic_registry/topic_registry.h"
 #include <thread>
 
 int main() {
-    AppendLog log("test_logs/basic_append.log");
-    LogReader reader(log, "test_logs/basic_append.log");
+    TopicRegistry registry("test_logs");
 
-    HttpServer http(log, reader);
+    HttpServer http(registry);
     std::thread http_thread([&]{ http.start(); });
 
-    UdpServer server(log);
+    UdpServer server(*registry.get_or_create("default").log);
     server.run();
 
     http.stop();
