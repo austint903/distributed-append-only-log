@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include <cerrno>
 #include <cstring>
 #include <iostream>
 #include <stdexcept>
@@ -28,6 +29,11 @@ UdpServer::UdpServer(AppendLog& log) : log_(log) {
         throw std::runtime_error("bind() failed");
     }
 
+    timeval tv{};
+    tv.tv_sec  = 0;
+    tv.tv_usec = 200'000; //200ms timeout
+    setsockopt(udp_fd_, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+
     std::cout << "listening on UDP port " << SERVER_PORT << "\n";
 }
 
@@ -35,16 +41,20 @@ UdpServer::~UdpServer() {
     if (udp_fd_ >= 0) close(udp_fd_);
 }
 
-void UdpServer::run() {
+void UdpServer::run(std::atomic<bool>& running) {
     std::vector<uint8_t> buf(MAX_UDP);
 
-    while (true) {
+    while (running) {
         sockaddr_in sender{};
         socklen_t   sender_len = sizeof(sender);
 
         ssize_t n = recvfrom(udp_fd_, buf.data(), buf.size(), 0,
                              reinterpret_cast<sockaddr*>(&sender), &sender_len);
-        if (n < 0) { std::cerr << "recvfrom failed\n"; continue; }
+        if (n < 0) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) continue;
+            std::cerr << "recvfrom failed: " << strerror(errno) << "\n";
+            continue;
+        }
 
         if (static_cast<size_t>(n) < sizeof(ProducerPacket)) {
             printf("Dropping short packet (%zd bytes)\n", n);
