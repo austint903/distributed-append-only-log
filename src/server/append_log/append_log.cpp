@@ -52,7 +52,7 @@ void AppendLog::buildIndex() {
 }
 
 uint64_t AppendLog::append_and_seq(std::span<const uint8_t> payload) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::unique_lock<std::mutex> lock(mutex_);
     RecordHeader hdr{};
     hdr.payload_length  = static_cast<uint32_t>(payload.size());
     hdr.sequence_number = next_seq_;
@@ -85,7 +85,9 @@ uint64_t AppendLog::append_and_seq(std::span<const uint8_t> payload) {
     //addIndex here
     addIndex(next_seq_, fileIndex);
     fileIndex+=record.size();
-    return next_seq_++;
+    uint64_t assigned = next_seq_++;
+    cv_.notify_all();
+    return assigned;
 }
 
 std::optional<off_t>AppendLog::getOffset(uint64_t sequenceNumber) const {
@@ -93,4 +95,11 @@ std::optional<off_t>AppendLog::getOffset(uint64_t sequenceNumber) const {
     auto it = index_.find(sequenceNumber);
     if (it == index_.end())return std::nullopt;
     return it->second;
+}
+
+bool AppendLog::wait_for_seq(uint64_t sequenceNumber, std::chrono::milliseconds timeout) const {
+    std::unique_lock<std::mutex> lock(mutex_);
+    return cv_.wait_for(lock, timeout, [this, sequenceNumber] {
+        return next_seq_ > sequenceNumber;
+    });
 }

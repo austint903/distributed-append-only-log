@@ -5,6 +5,8 @@
 #include <span>
 #include <liburing.h>
 #include <optional>
+#include <chrono>
+#include <condition_variable>
 
 #include "../../util/util.h"
 #include <unordered_map>
@@ -16,6 +18,7 @@ class AppendLog {
     uint64_t next_seq_ = 0;
     off_t fileIndex = 0;
     mutable std::mutex mutex_;
+    mutable std::condition_variable cv_;
 
     static constexpr unsigned QUEUE_DEPTH = 1;
 
@@ -36,6 +39,7 @@ public:
     uint64_t next_seq() const { std::lock_guard<std::mutex> lock(mutex_); return next_seq_; }
 
     std::optional<off_t> getOffset(uint64_t sequenceNumber) const;
+    bool wait_for_seq(uint64_t sequenceNumber, std::chrono::milliseconds timeout) const;
 };
 
 #endif // APPEND_LOG_H
