@@ -105,3 +105,11 @@ add_executable(test_topic_registry
     src/util/util.cpp)
 target_link_libraries(test_topic_registry GTest::gtest_main uring pthread)
 add_test(NAME test_topic_registry COMMAND test_topic_registry)
+
+# test_tail_consumer
+add_executable(test_tail_consumer
+    tests/test_tail_consumer.cpp
+    src/server/append_log/append_log.cpp
+    src/util/util.cpp)
+target_link_libraries(test_tail_consumer GTest::gtest_main uring pthread)
+add_test(NAME test_tail_consumer COMMAND test_tail_consumer)
