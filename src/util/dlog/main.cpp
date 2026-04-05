@@ -1,4 +1,6 @@
 #include <iostream>
+#include <csignal>
+#include <atomic>
 #include "../../../vendor/httplib.h"
 
 static const char* HOST = "localhost";
@@ -8,6 +10,7 @@ void usage() {
     std::cerr << "Usage:\n"
               << "  dlog produce --topic <topic> <message>\n"
               << "  dlog consume --topic <topic> --offset <offset>\n"
+              << "  dlog tail   --topic <topic> [--offset <offset>] [--timeout-ms <ms>]\n"
               << "  dlog topics list\n";
 }
 
@@ -76,6 +79,46 @@ int main(int argc, char** argv) {
             return 1;
         }
         std::cout << res->body << "\n";
+    }
+    else if (command == "tail") {
+        const std::string topic = get_flag(argc, argv, "--topic");
+        if (topic.empty()) {
+            std::cerr << "Error: --topic required\n";
+            return 1;
+        }
+        const std::string offset_str    = get_flag(argc, argv, "--offset");
+        const std::string timeout_str   = get_flag(argc, argv, "--timeout-ms");
+        uint64_t    offset     = offset_str.empty()  ? 0     : std::stoull(offset_str);
+        int         timeout_ms = timeout_str.empty() ? 30000 : std::stoi(timeout_str);
+
+        client.set_read_timeout(timeout_ms / 1000 + 10, 0);
+        client.set_write_timeout(timeout_ms / 1000 + 10, 0);
+
+
+        std::cerr << "Tailing topic '" << topic << "' from offset " << offset
+                  << "... (Ctrl+C to stop)\n";
+
+        while (true) {
+            const std::string url = "/tail?topic=" + topic
+                                  + "&offset="     + std::to_string(offset)
+                                  + "&timeout_ms=" + std::to_string(timeout_ms);
+            auto res = client.Get(url);
+
+            if (!res) {
+                std::cerr << "Error: could not connect to server\n";
+                return 1;
+            }
+            if (res->status == 200) {
+                const std::string seq = res->get_header_value("X-Sequence-Number");
+                std::cout << "[seq=" << seq << "] " << res->body << "\n";
+                offset = std::stoull(seq) + 1;
+            } else if (res->status == 408) {
+                continue;
+            } else {
+                std::cerr << "Error: server returned " << res->status << "\n";
+                return 1;
+            }
+        }
     }
     else {
         usage();
