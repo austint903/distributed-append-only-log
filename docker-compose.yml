@@ -10,7 +10,7 @@ services:
     ports:
       - "2221:22"
       - "9991:9999/udp"
-      - "8080:8080"
+      - "8081:8080"
     privileged: true
 
   server-2:
@@ -23,7 +23,7 @@ services:
     ports:
       - "2222:22"
       - "9992:9999/udp"
-      - "8082:8080"
+      - "8080:8080"
     privileged: true
 
   server-3:
