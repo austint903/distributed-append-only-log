@@ -3,3 +3,5 @@ cmake-build-*/
 test_logs/
 .clion.source.upload.marker
 vendor/
+docker-data/*
+!docker-data/.gitkeep
