@@ -28,6 +28,15 @@ add_executable(producer tools/producer/main.cpp
 
 add_executable(dlog src/util/dlog/main.cpp)
 
+add_executable(router
+        src/router/main.cpp
+        src/router/partition_map.h
+        src/router/partition_map.cpp
+        src/router/router_server.h
+        src/router/router_server.cpp
+)
+target_link_libraries(router pthread)
+
 add_executable(test_append tests/test_append.cpp
         src/server/append_log/append_log.h
         src/server/append_log/append_log.cpp

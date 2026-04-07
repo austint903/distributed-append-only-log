@@ -4,7 +4,7 @@
 #include "../../../vendor/httplib.h"
 
 static const char* HOST = "localhost";
-static const int PORT = 8080;
+static const int PORT = 9090;
 
 void usage() {
     std::cerr << "Usage:\n"
