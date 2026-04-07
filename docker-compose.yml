@@ -43,24 +43,3 @@ services:
       - "8083:8080"
     privileged: true
     command: bash -c "/usr/sbin/sshd && exec /app/cmake-build-dev-server/server"
-
-  router:
-    build:
-      context: .
-      dockerfile: infra/server/Dockerfile
-    container_name: distributed_log_router
-    volumes:
-      - .:/app
-      - ./docker-data:/app/cmake-build-dev-server
-    ports:
-      - "9090:9090"
-    privileged: true
-    environment:
-      - NODES=server-1:8080,server-2:8080,server-3:8080
-      - PORT=9090
-      - DATA_DIR=/app/data/router
-    command: bash -c "/usr/sbin/sshd && exec /app/cmake-build-dev-server/router"
-    depends_on:
-      - server-1
-      - server-2
-      - server-3

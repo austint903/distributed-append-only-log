@@ -30,7 +30,7 @@ int main() {
 
     std::string nodes_str = nodes_env    ? nodes_env    : "localhost:8080,localhost:8081,localhost:8083";
     int         port      = port_env     ? std::stoi(port_env) : 9090;
-    std::string data_dir  = data_dir_env ? data_dir_env : "/tmp";
+    std::string data_dir  = data_dir_env ? data_dir_env : "data/router";
 
     auto nodes = parse_nodes(nodes_str);
     if (nodes.empty()) {
