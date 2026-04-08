@@ -101,6 +101,10 @@ HttpServer::HttpServer(TopicRegistry& registry) : registry_(registry) {
             "application/octet-stream");
     });
 
+    http_server_.Get("/health", [&](const httplib::Request&, httplib::Response &res) {
+        res.set_content("{\"status\":\"ok\"}", "application/json");
+    });
+
     http_server_.Get("/topics", [&](const httplib::Request&, httplib::Response &res) {
         auto names = registry_.list_topics();
         std::string body = "{\"topics\":[";
