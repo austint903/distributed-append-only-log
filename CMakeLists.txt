@@ -14,6 +14,8 @@ add_executable(server src/server/main.cpp
         src/server/http_server/http_server.cpp
         src/server/topic_registry/topic_registry.h
         src/server/topic_registry/topic_registry.cpp
+        src/server/node_manager/node_manager.h
+        src/server/node_manager/node_manager.cpp
         src/util/util.h
         src/util/util.cpp
         )
