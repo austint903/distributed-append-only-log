@@ -122,3 +122,11 @@ add_executable(test_tail_consumer
     src/util/util.cpp)
 target_link_libraries(test_tail_consumer GTest::gtest_main uring pthread)
 add_test(NAME test_tail_consumer COMMAND test_tail_consumer)
+
+# test_router
+add_executable(test_router
+    tests/test_router.cpp
+    src/router/partition_map.cpp
+    src/router/router_server.cpp)
+target_link_libraries(test_router GTest::gtest_main pthread)
+add_test(NAME test_router COMMAND test_router)
