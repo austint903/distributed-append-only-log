@@ -61,8 +61,12 @@ static std::string build_assignments_json(const std::unordered_map<std::string, 
     return body;
 }
 
-PartitionMap::PartitionMap(std::string persist_path, std::vector<NodeInfo> nodes)
-    : persist_path_(std::move(persist_path)), nodes_(std::move(nodes)) {}
+PartitionMap::PartitionMap(std::string persist_path, std::vector<ReplicaGroup> groups)
+    : persist_path_(std::move(persist_path)), groups_(std::move(groups)) {
+    for (int i = 0; i < (int)groups_.size(); i++) {
+        group_index_by_master_[groups_[i].master.addr()] = i;
+    }
+}
 
 void PartitionMap::load() {
     std::ifstream f(persist_path_);
@@ -74,7 +78,8 @@ void PartitionMap::load() {
 
 void PartitionMap::reconcile() {
     std::unordered_map<std::string, std::string> discovered;
-    for (auto& node : nodes_) {
+    for (auto& group : groups_) {
+        auto& node = group.master;
         httplib::Client cli(node.host, node.port);
         cli.set_connection_timeout(2, 0);
         cli.set_read_timeout(2, 0);
@@ -109,6 +114,15 @@ NodeInfo PartitionMap::get_or_assign(const std::string& topic) {
     return node;
 }
 
+std::vector<NodeInfo> PartitionMap::get_all_nodes(const std::string& topic) {
+    std::lock_guard<std::mutex> lock(mu_);
+    auto it = assignments_.find(topic);
+    if (it == assignments_.end()) return {};
+    auto idx_it = group_index_by_master_.find(it->second);
+    if (idx_it == group_index_by_master_.end()) return {};
+    return groups_[idx_it->second].all();
+}
+
 std::unordered_map<std::string, std::string> PartitionMap::snapshot() const {
     std::lock_guard<std::mutex> lock(mu_);
     return assignments_;
@@ -127,16 +141,16 @@ void PartitionMap::flush_locked() {
 
 NodeInfo PartitionMap::pick_least_loaded_locked() const {
     std::unordered_map<std::string, int> counts;
-    for (auto& node : nodes_) counts[node.addr()] = 0;
+    for (auto& g : groups_) counts[g.master.addr()] = 0;
     for (auto& [topic, addr] : assignments_) counts[addr]++;
 
-    const NodeInfo* best = &nodes_[0];
-    int best_count = counts[nodes_[0].addr()];
-    for (auto& node : nodes_) {
-        int c = counts[node.addr()];
+    const NodeInfo* best = &groups_[0].master;
+    int best_count = counts[groups_[0].master.addr()];
+    for (auto& g : groups_) {
+        int c = counts[g.master.addr()];
         if (c < best_count) {
             best_count = c;
-            best = &node;
+            best = &g.master;
         }
     }
     return *best;
