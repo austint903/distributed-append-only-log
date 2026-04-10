@@ -36,6 +36,10 @@ add_executable(router
         src/router/partition_map.cpp
         src/router/router_server.h
         src/router/router_server.cpp
+        src/router/health_tracker.h
+        src/router/health_tracker.cpp
+        src/router/request_manager.h
+        src/router/request_manager.cpp
 )
 target_link_libraries(router pthread)
 
@@ -129,6 +133,8 @@ add_test(NAME test_tail_consumer COMMAND test_tail_consumer)
 add_executable(test_router
     tests/test_router.cpp
     src/router/partition_map.cpp
-    src/router/router_server.cpp)
+    src/router/router_server.cpp
+    src/router/health_tracker.cpp
+    src/router/request_manager.cpp)
 target_link_libraries(test_router GTest::gtest_main pthread)
 add_test(NAME test_router COMMAND test_router)
