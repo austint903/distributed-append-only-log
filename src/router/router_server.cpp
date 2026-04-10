@@ -1,7 +1,8 @@
 #include "router_server.h"
 
-RouterServer::RouterServer(PartitionMap& map, int port)
-    : map_(map), port_(port) {
+RouterServer::RouterServer(PartitionMap& map, std::vector<NodeInfo> all_nodes, int port)
+    : map_(map), health_tracker_(std::move(all_nodes)), request_manager_(map_, health_tracker_), port_(port) {
+    health_tracker_.start();
     server_.set_read_timeout(120, 0);
     server_.set_write_timeout(120, 0);
 
@@ -24,6 +25,7 @@ void RouterServer::start() {
 }
 
 void RouterServer::stop() {
+    health_tracker_.stop();
     server_.stop();
 }
 
@@ -34,7 +36,7 @@ void RouterServer::forward_produce(const httplib::Request& req, httplib::Respons
         return;
     }
     auto topic = req.get_param_value("topic");
-    auto node = map_.get_or_assign(topic);
+    auto node = request_manager_.get_write_node(topic);
 
     httplib::Client cli(node.host, node.port);
     cli.set_connection_timeout(5, 0);
@@ -58,9 +60,14 @@ void RouterServer::forward_consume(const httplib::Request& req, httplib::Respons
         return;
     }
     auto topic = req.get_param_value("topic");
-    auto node = map_.get_or_assign(topic);
+    auto node_opt = request_manager_.get_read_node(topic);
+    if (!node_opt) {
+        res.status = 503;
+        res.set_content("{\"error\":\"no healthy nodes for topic\"}", "application/json");
+        return;
+    }
 
-    httplib::Client cli(node.host, node.port);
+    httplib::Client cli(node_opt->host, node_opt->port);
     cli.set_connection_timeout(5, 0);
     cli.set_read_timeout(10, 0);
 
@@ -85,13 +92,18 @@ void RouterServer::forward_tail(const httplib::Request& req, httplib::Response& 
         return;
     }
     auto topic = req.get_param_value("topic");
-    auto node = map_.get_or_assign(topic);
+    auto node_opt = request_manager_.get_read_node(topic);
+    if (!node_opt) {
+        res.status = 503;
+        res.set_content("{\"error\":\"no healthy nodes for topic\"}", "application/json");
+        return;
+    }
 
     int timeout_ms = req.has_param("timeout_ms")
         ? std::stoi(req.get_param_value("timeout_ms"))
         : 30000;
 
-    httplib::Client cli(node.host, node.port);
+    httplib::Client cli(node_opt->host, node_opt->port);
     cli.set_connection_timeout(5, 0);
     cli.set_read_timeout(timeout_ms / 1000 + 10, 0);
 
