@@ -5,23 +5,59 @@ services:
       context: .
       dockerfile: infra/server/Dockerfile
     container_name: distributed_log_server_1
+    environment:
+      - ROLE=master
     volumes:
       - .:/app
       - ./docker-data:/app/cmake-build-dev-server
+      - ./data/server-1/test_logs:/app/test_logs
     ports:
       - "2222:22"
       - "9991:9999/udp"
       - "8080:8080"
     privileged: true
 
+  server-1-r1:
+    build:
+      context: .
+      dockerfile: infra/server/Dockerfile
+    container_name: distributed_log_server_1_r1
+    environment:
+      - ROLE=slave
+      - MASTER_URL=http://server-1:8080
+    volumes:
+      - .:/app
+      - ./docker-data:/app/cmake-build-dev-server
+      - ./data/server-1-r1/test_logs:/app/test_logs
+    privileged: true
+    command: bash -c "/app/cmake-build-dev-server/server"
+
+  server-1-r2:
+    build:
+      context: .
+      dockerfile: infra/server/Dockerfile
+    container_name: distributed_log_server_1_r2
+    environment:
+      - ROLE=slave
+      - MASTER_URL=http://server-1:8080
+    volumes:
+      - .:/app
+      - ./docker-data:/app/cmake-build-dev-server
+      - ./data/server-1-r2/test_logs:/app/test_logs
+    privileged: true
+    command: bash -c "/app/cmake-build-dev-server/server"
+
   server-2:
     build:
       context: .
       dockerfile: infra/server/Dockerfile
     container_name: distributed_log_server_2
+    environment:
+      - ROLE=master
     volumes:
       - .:/app
       - ./docker-data:/app/cmake-build-dev-server
+      - ./data/server-2/test_logs:/app/test_logs
     ports:
       - "2221:22"
       - "9992:9999/udp"
@@ -29,17 +65,98 @@ services:
     privileged: true
     command: bash -c "/usr/sbin/sshd && exec /app/cmake-build-dev-server/server"
 
+  server-2-r1:
+    build:
+      context: .
+      dockerfile: infra/server/Dockerfile
+    container_name: distributed_log_server_2_r1
+    environment:
+      - ROLE=slave
+      - MASTER_URL=http://server-2:8080
+    volumes:
+      - .:/app
+      - ./docker-data:/app/cmake-build-dev-server
+      - ./data/server-2-r1/test_logs:/app/test_logs
+    privileged: true
+    command: bash -c "/app/cmake-build-dev-server/server"
+
+  server-2-r2:
+    build:
+      context: .
+      dockerfile: infra/server/Dockerfile
+    container_name: distributed_log_server_2_r2
+    environment:
+      - ROLE=slave
+      - MASTER_URL=http://server-2:8080
+    volumes:
+      - .:/app
+      - ./docker-data:/app/cmake-build-dev-server
+      - ./data/server-2-r2/test_logs:/app/test_logs
+    privileged: true
+    command: bash -c "/app/cmake-build-dev-server/server"
+
   server-3:
     build:
       context: .
       dockerfile: infra/server/Dockerfile
     container_name: distributed_log_server_3
+    environment:
+      - ROLE=master
     volumes:
       - .:/app
       - ./docker-data:/app/cmake-build-dev-server
+      - ./data/server-3/test_logs:/app/test_logs
     ports:
       - "2223:22"
       - "9993:9999/udp"
       - "8083:8080"
     privileged: true
     command: bash -c "/usr/sbin/sshd && exec /app/cmake-build-dev-server/server"
+
+  server-3-r1:
+    build:
+      context: .
+      dockerfile: infra/server/Dockerfile
+    container_name: distributed_log_server_3_r1
+    environment:
+      - ROLE=slave
+      - MASTER_URL=http://server-3:8080
+    volumes:
+      - .:/app
+      - ./docker-data:/app/cmake-build-dev-server
+      - ./data/server-3-r1/test_logs:/app/test_logs
+    privileged: true
+    command: bash -c "/app/cmake-build-dev-server/server"
+
+  server-3-r2:
+    build:
+      context: .
+      dockerfile: infra/server/Dockerfile
+    container_name: distributed_log_server_3_r2
+    environment:
+      - ROLE=slave
+      - MASTER_URL=http://server-3:8080
+    volumes:
+      - .:/app
+      - ./docker-data:/app/cmake-build-dev-server
+      - ./data/server-3-r2/test_logs:/app/test_logs
+    privileged: true
+    command: bash -c "/app/cmake-build-dev-server/server"
+
+  router:
+    build:
+      context: .
+      dockerfile: infra/server/Dockerfile
+    container_name: distributed_log_router
+    environment:
+      - REPLICA_GROUPS=server-1:8080,server-1-r1:8080,server-1-r2:8080;server-2:8080,server-2-r1:8080,server-2-r2:8080;server-3:8080,server-3-r1:8080,server-3-r2:8080
+      - PORT=9090
+      - DATA_DIR=/app/data/router
+    volumes:
+      - .:/app
+      - ./docker-data:/app/cmake-build-dev-server
+      - ./data/router:/app/data/router
+    ports:
+      - "9090:9090"
+    privileged: true
+    command: bash -c "/app/cmake-build-dev-server/router"
