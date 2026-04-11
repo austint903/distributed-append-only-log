@@ -5,3 +5,4 @@ test_logs/
 vendor/
 docker-data/*
 !docker-data/.gitkeep
+data/
