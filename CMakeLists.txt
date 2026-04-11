@@ -138,3 +138,31 @@ add_executable(test_router
     src/router/request_manager.cpp)
 target_link_libraries(test_router GTest::gtest_main pthread)
 add_test(NAME test_router COMMAND test_router)
+
+# test_health_tracker
+add_executable(test_health_tracker
+    tests/test_health_tracker.cpp
+    src/router/health_tracker.cpp
+    src/router/partition_map.cpp)
+target_link_libraries(test_health_tracker GTest::gtest_main pthread)
+add_test(NAME test_health_tracker COMMAND test_health_tracker)
+
+# test_request_manager
+add_executable(test_request_manager
+    tests/test_request_manager.cpp
+    src/router/request_manager.cpp
+    src/router/health_tracker.cpp
+    src/router/partition_map.cpp)
+target_link_libraries(test_request_manager GTest::gtest_main pthread)
+add_test(NAME test_request_manager COMMAND test_request_manager)
+
+# test_node_manager
+add_executable(test_node_manager
+    tests/test_node_manager.cpp
+    src/server/node_manager/node_manager.cpp
+    src/server/topic_registry/topic_registry.cpp
+    src/server/append_log/append_log.cpp
+    src/server/log_reader/log_reader.cpp
+    src/util/util.cpp)
+target_link_libraries(test_node_manager GTest::gtest_main uring pthread)
+add_test(NAME test_node_manager COMMAND test_node_manager)
