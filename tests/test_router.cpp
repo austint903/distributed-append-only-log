@@ -12,6 +12,7 @@
 
 static const NodeInfo kNodeA{"127.0.0.1", 8080};
 static const NodeInfo kNodeB{"127.0.0.1", 8081};
+static const NodeInfo kSlave1{"127.0.0.1", 8082};
 
 // ─── NodeInfo ──────────────────────────────────────────────────────────────
 
@@ -48,13 +49,13 @@ protected:
 };
 
 TEST_F(PartitionMapTest, SnapshotIsEmptyWithNoAssignments) {
-    PartitionMap map(path_, {kNodeA});
+    PartitionMap map(path_, {ReplicaGroup{kNodeA, {}}});
 
     EXPECT_TRUE(map.snapshot().empty());
 }
 
 TEST_F(PartitionMapTest, GetOrAssign_NewTopic_ReturnsAvailableNode) {
-    PartitionMap map(path_, {kNodeA});
+    PartitionMap map(path_, {ReplicaGroup{kNodeA, {}}});
 
     auto node = map.get_or_assign("orders");
 
@@ -63,7 +64,7 @@ TEST_F(PartitionMapTest, GetOrAssign_NewTopic_ReturnsAvailableNode) {
 }
 
 TEST_F(PartitionMapTest, GetOrAssign_ExistingTopic_ReturnsSameNode) {
-    PartitionMap map(path_, {kNodeA, kNodeB});
+    PartitionMap map(path_, {ReplicaGroup{kNodeA, {}}, ReplicaGroup{kNodeB, {}}});
 
     auto first  = map.get_or_assign("payments");
     auto second = map.get_or_assign("payments");
@@ -73,7 +74,7 @@ TEST_F(PartitionMapTest, GetOrAssign_ExistingTopic_ReturnsSameNode) {
 }
 
 TEST_F(PartitionMapTest, GetOrAssign_NewTopicAppearsInSnapshot) {
-    PartitionMap map(path_, {kNodeA});
+    PartitionMap map(path_, {ReplicaGroup{kNodeA, {}}});
 
     map.get_or_assign("events");
 
@@ -83,7 +84,7 @@ TEST_F(PartitionMapTest, GetOrAssign_NewTopicAppearsInSnapshot) {
 }
 
 TEST_F(PartitionMapTest, GetOrAssign_PersistsAssignmentToFile) {
-    PartitionMap map(path_, {kNodeA});
+    PartitionMap map(path_, {ReplicaGroup{kNodeA, {}}});
 
     map.get_or_assign("metrics");
 
@@ -91,7 +92,7 @@ TEST_F(PartitionMapTest, GetOrAssign_PersistsAssignmentToFile) {
 }
 
 TEST_F(PartitionMapTest, GetOrAssign_TwoNodes_DistributesTopicsEvenly) {
-    PartitionMap map(path_, {kNodeA, kNodeB});
+    PartitionMap map(path_, {ReplicaGroup{kNodeA, {}}, ReplicaGroup{kNodeB, {}}});
 
     map.get_or_assign("t1");
     map.get_or_assign("t2");
@@ -108,7 +109,7 @@ TEST_F(PartitionMapTest, GetOrAssign_PicksLeastLoadedNode) {
     // nodeA already has one topic in the persisted file → nodeB is least loaded
     write_assignments_file("existing", kNodeA.addr());
 
-    PartitionMap map(path_, {kNodeA, kNodeB});
+    PartitionMap map(path_, {ReplicaGroup{kNodeA, {}}, ReplicaGroup{kNodeB, {}}});
     map.load();
 
     auto node = map.get_or_assign("newcomer");
@@ -118,7 +119,7 @@ TEST_F(PartitionMapTest, GetOrAssign_PicksLeastLoadedNode) {
 }
 
 TEST_F(PartitionMapTest, Load_MissingFile_DoesNotCrashAndLeavesMapEmpty) {
-    PartitionMap map(path_, {kNodeA});  // file does not exist yet
+    PartitionMap map(path_, {ReplicaGroup{kNodeA, {}}});  // file does not exist yet
 
     EXPECT_NO_THROW(map.load());
     EXPECT_TRUE(map.snapshot().empty());
@@ -127,7 +128,7 @@ TEST_F(PartitionMapTest, Load_MissingFile_DoesNotCrashAndLeavesMapEmpty) {
 TEST_F(PartitionMapTest, Load_ValidFile_RestoresAssignments) {
     write_assignments_file("logs", kNodeA.addr());
 
-    PartitionMap map(path_, {kNodeA});
+    PartitionMap map(path_, {ReplicaGroup{kNodeA, {}}});
     map.load();
 
     auto snap = map.snapshot();
@@ -137,12 +138,12 @@ TEST_F(PartitionMapTest, Load_ValidFile_RestoresAssignments) {
 
 TEST_F(PartitionMapTest, PersistAndReload_AssignmentsSurviveRestart) {
     {
-        PartitionMap map(path_, {kNodeA, kNodeB});
+        PartitionMap map(path_, {ReplicaGroup{kNodeA, {}}, ReplicaGroup{kNodeB, {}}});
         map.get_or_assign("alpha");
         map.get_or_assign("beta");
     }
 
-    PartitionMap map2(path_, {kNodeA, kNodeB});
+    PartitionMap map2(path_, {ReplicaGroup{kNodeA, {}}, ReplicaGroup{kNodeB, {}}});
     map2.load();
 
     auto snap = map2.snapshot();
@@ -155,13 +156,57 @@ TEST_F(PartitionMapTest, GetOrAssign_LoadedAssignmentNotOverriddenByBalance) {
     // assignments must not be moved.
     write_assignments_file("logs", kNodeA.addr());
 
-    PartitionMap map(path_, {kNodeA, kNodeB});
+    PartitionMap map(path_, {ReplicaGroup{kNodeA, {}}, ReplicaGroup{kNodeB, {}}});
     map.load();
 
     auto node = map.get_or_assign("logs");
 
     EXPECT_EQ(node.host, kNodeA.host);
     EXPECT_EQ(node.port, kNodeA.port);
+}
+
+// ─── PartitionMap::get_all_nodes ──────────────────────────────────────────
+
+TEST_F(PartitionMapTest, GetAllNodes_UnassignedTopic_ReturnsEmpty) {
+    PartitionMap map(path_, {ReplicaGroup{kNodeA, {kSlave1}}});
+
+    auto nodes = map.get_all_nodes("never-assigned");
+
+    EXPECT_TRUE(nodes.empty());
+}
+
+TEST_F(PartitionMapTest, GetAllNodes_AssignedTopic_ReturnsMasterAndSlaves) {
+    PartitionMap map(path_, {ReplicaGroup{kNodeA, {kSlave1}}});
+    map.get_or_assign("stream");
+
+    auto nodes = map.get_all_nodes("stream");
+
+    ASSERT_EQ(nodes.size(), 2u);
+    EXPECT_EQ(nodes[0].addr(), kNodeA.addr());
+    EXPECT_EQ(nodes[1].addr(), kSlave1.addr());
+}
+
+TEST_F(PartitionMapTest, GetAllNodes_MasterOnlyGroup_ReturnsMasterOnly) {
+    PartitionMap map(path_, {ReplicaGroup{kNodeA, {}}});
+    map.get_or_assign("solo");
+
+    auto nodes = map.get_all_nodes("solo");
+
+    ASSERT_EQ(nodes.size(), 1u);
+    EXPECT_EQ(nodes[0].addr(), kNodeA.addr());
+}
+
+TEST_F(PartitionMapTest, GetAllNodes_OrphanAssignment_ReturnsEmpty) {
+    // Assignment file references a node not in any ReplicaGroup.
+    // get_all_nodes cannot look up the group → returns empty rather than crash.
+    write_assignments_file("orphan", "10.0.0.99:9999");
+
+    PartitionMap map(path_, {ReplicaGroup{kNodeA, {}}});
+    map.load();
+
+    auto nodes = map.get_all_nodes("orphan");
+
+    EXPECT_TRUE(nodes.empty());
 }
 
 // ─── RouterServer ──────────────────────────────────────────────────────────
@@ -192,8 +237,8 @@ protected:
         path_ = dir_ + "/partitions.json";
         port_ = next_port();
 
-        pm_ = std::make_unique<PartitionMap>(path_, std::vector<NodeInfo>{{"127.0.0.1", 1}});
-        router_ = std::make_unique<RouterServer>(*pm_, port_);
+        pm_ = std::make_unique<PartitionMap>(path_, std::vector<ReplicaGroup>{ReplicaGroup{{"127.0.0.1", 1}, {}}});
+        router_ = std::make_unique<RouterServer>(*pm_, std::vector<NodeInfo>{{"127.0.0.1", 1}}, port_);
 
         server_thread_ = std::thread([this] { router_->start(); });
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
