@@ -28,8 +28,10 @@ that partitions topics across replica groups — all coordinated through a light
 - **Concurrent writes/reads** — io_uring-backed appends with a mutex-protected in-memory index
 - **Crash recovery** — on restart the server scans the log file and rebuilds its sequence index
 - **CRC32 checksums** on each log record to detect corruption
-- **Replication** — each primary node syncs writes to its replicas via HTTP
-- **Router** — a stateless router partitions topics across 3 primary replica groups, with health tracking
+- **Replication** — each primary node syncs writes to its replicas via HTTP; any node in the group can serve reads
+- **Partition tolerance** — topics are distributed across 3 independent replica groups; losing one group doesn't affect the others
+- **Automatic failover** — the router health-checks every node and skips unhealthy ones transparently
+- **Router** — a stateless router partitions topics across 3 primary replica groups with persistent partition assignments
 - **`dlog` CLI** — a compiled binary you drop in your `PATH` to produce/consume from the terminal
 
 ---
