@@ -28,7 +28,7 @@ that partitions topics across replica groups — all coordinated through a light
 - **Concurrent writes/reads** — io_uring-backed appends with a mutex-protected in-memory index
 - **Crash recovery** — on restart the server scans the log file and rebuilds its sequence index
 - **CRC32 checksums** on each log record to detect corruption
-- **Replication** — each primary node syncs writes to its replicas via HTTP; any node in the group can serve reads
+- **Replication** — each replica group runs Network-Ordered Paxos (NOPaxos); a software sequencer stamps total order on incoming log entries so replicas agree without per-request coordination; any node in the group can serve reads
 - **Partition tolerance** — topics are distributed across 3 independent replica groups; losing one group doesn't affect the others
 - **Automatic failover** — the router health-checks every node and skips unhealthy ones transparently
 - **Router** — a stateless router partitions topics across 3 primary replica groups with persistent partition assignments
@@ -96,8 +96,9 @@ time), which gives durability semantics similar to a synchronous write but throu
 
 ### Replication
 
-Each primary node's HTTP server handles a `/replicate` endpoint. After a successful local append, `NodeManager` fans the
-payload out to all replica URLs. Replicas apply the write identically so reads can be served by any node in the group.
+Each replica group runs Network-Ordered Paxos (NOPaxos). A software sequencer stamps total order on log entries before
+they reach replicas, so replicas agree without per-request coordination. After a successful local append, `NodeManager`
+fans the entry out to its replicas via `/replicate`; any node in the group can serve reads.
 
 ### Router & Partition Map
 
